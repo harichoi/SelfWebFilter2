@@ -146,6 +146,20 @@ public class InternetFragment extends Fragment implements TextView.OnEditorActio
                     showDeveloperMode();
                 } else if (urlText.getText().toString().equals("source")) {
                     showSource();
+                } else if (urlText.getText().toString().startsWith("add")) {
+                    if (urlText.getText().toString().contains(" ")) {
+                        String[] splits = urlText.getText().toString().split(" ");
+                        getFavoriteService().addFavorite(splits[1]);
+                    } else {
+                        getFavoriteService().addFavorite(webView.getUrl());
+                    }
+                } else if (urlText.getText().toString().startsWith("del")) {
+                    if (urlText.getText().toString().contains(" ")) {
+                        String[] splits = urlText.getText().toString().split(" ");
+                        getFavoriteService().removeFavorite(splits[1]);
+                    } else {
+                        getFavoriteService().removeFavoriteExactly(webView.getUrl());
+                    }
                 } else {
                     goUrl(urlText.getText().toString());
                 }
@@ -188,19 +202,11 @@ public class InternetFragment extends Fragment implements TextView.OnEditorActio
             public void onDownloadStart(String url, String userAgent,
                                         String contentDisposition, String mimetype,
                                         long contentLength) {
-                DownloadManager.Request request = new DownloadManager.Request(
-                        Uri.parse(url));
-
-                final String[] separated = url.split("/");
-                final String myFile = separated[separated.length - 1];
-                request.allowScanningByMediaScanner();
-                request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED); //Notify client once download is completed!
-                request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, myFile);
-                DownloadManager dm = (DownloadManager) getActivity().getSystemService(getActivity().DOWNLOAD_SERVICE);
-                dm.enqueue(request);
-                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT); //This is important!
-                intent.addCategory(Intent.CATEGORY_OPENABLE); //CATEGORY.OPENABLE
-                intent.setType("*/*");//any application,any extension
+                System.out.println("DOWNLOAD START");
+//                Uri uri = Uri.parse(url);
+//                Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+//                startActivity(intent);
+                downloadUrl(url);
                 Toast.makeText(getActivity().getApplicationContext(), "Downloading File", //To notify the Client that the file is being downloaded
                         Toast.LENGTH_LONG).show();
 
@@ -210,6 +216,22 @@ public class InternetFragment extends Fragment implements TextView.OnEditorActio
         urlText.setOnEditorActionListener(this);
 
         return view;
+    }
+
+    private void downloadUrl(String url) {
+        DownloadManager.Request request = new DownloadManager.Request(
+                Uri.parse(url));
+
+        final String[] separated = url.split("/");
+        final String myFile = separated[separated.length - 1];
+        request.allowScanningByMediaScanner();
+        request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED); //Notify client once download is completed!
+        request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, myFile);
+        DownloadManager dm = (DownloadManager) getActivity().getSystemService(getActivity().DOWNLOAD_SERVICE);
+        dm.enqueue(request);
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT); //This is important!
+        intent.addCategory(Intent.CATEGORY_OPENABLE); //CATEGORY.OPENABLE
+        intent.setType("*/*");//any application,any extension
     }
 
     public String getTitle() {
@@ -257,6 +279,23 @@ public class InternetFragment extends Fragment implements TextView.OnEditorActio
 
         @Override
         public boolean onCreateWindow(WebView view, boolean dialog, boolean userGesture, Message resultMsg) {
+
+            Message href = view.getHandler().obtainMessage();
+            view.requestFocusNodeHref(href);
+
+            String url = href.getData().getString("url");
+            goUrl(url);
+//            Log.d("WebView", url);
+//            Log.d("WebView", view.getUrl());
+//            Log.d("WebView", resultMsg.toString());
+//
+//            MyWebView newWebView = new MyWebView(getActivity());
+//
+//            view.addView(newWebView);
+//            WebView.WebViewTransport transport = (WebView.WebViewTransport) resultMsg.obj;
+//            transport.setWebView(newWebView);
+//            resultMsg.sendToTarget();
+
             return true;
         }
 
@@ -289,6 +328,7 @@ public class InternetFragment extends Fragment implements TextView.OnEditorActio
 
         @Override
         public boolean onJsAlert(WebView view, String url, String message, JsResult result) {
+            Log.d("JSALERT", "START");
             final JsResult finalRes = result;
             new AlertDialog.Builder(view.getContext())
                     .setMessage(message)
@@ -401,7 +441,6 @@ public class InternetFragment extends Fragment implements TextView.OnEditorActio
     public class MyWebViewClient extends WebViewClient {
         String previousUrl;
 
-        @Override
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
 
             Log.d("url_override", url);
@@ -452,6 +491,9 @@ public class InternetFragment extends Fragment implements TextView.OnEditorActio
         @Override
         public void onPageStarted(WebView view, String url, Bitmap favicon) {
             Log.d("on_page_start", url);
+            if (url.contains("download") && url.contains("jsp")) {
+                downloadUrl(url);
+            }
             progressBar.setVisibility(View.VISIBLE);
             changeUrl(false);
         }

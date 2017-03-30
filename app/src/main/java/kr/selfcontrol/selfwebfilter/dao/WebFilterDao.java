@@ -19,7 +19,7 @@ public class WebFilterDao extends SQLiteOpenHelper {
     public SQLiteDatabase database;
 
     public WebFilterDao(Context context) {
-        super(context, "selfcontrol.db", null, 1);
+        super(context, "selfcontrol.db", null, 2);
     }
 
     @Override
@@ -53,6 +53,31 @@ public class WebFilterDao extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        db.execSQL("CREATE TABLE favorite(" +
+                "url varchar(256)" +
+                ",primary key(url))");
+    }
+
+    public List<String> selectFavorites() {
+        List<String> favorites = new ArrayList<>();
+
+        List<HashMap<String, String>> listMap = readSql("select * from favorite");
+        for (HashMap<String, String> map : listMap) {
+            favorites.add(map.get("url"));
+        }
+        return favorites;
+    }
+
+    public void insertFavorite(String url) {
+        writeSql("insert into favorite(url) values (?)", url);
+    }
+
+    public void removeFavorite(String url) {
+        writeSql("delete from favorite where url like '%"+url+"%'");
+    }
+
+    public void removeFavoriteExactly(String url) {
+        writeSql("delete from favorite where url = ?", url);
 
     }
 

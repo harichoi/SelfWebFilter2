@@ -24,10 +24,12 @@ public class InternetService {
     List<BlockVo> cautionList = new ArrayList<>();
     List<BlockVo> trustList = new ArrayList<>();
     List<GroupVo> groupVoList;
+    FavoriteService favoriteService;
 
     private InternetService(Context context) {
         this.context = context;
         webFilterDao = new WebFilterDao(context);
+        favoriteService = FavoriteService.getInstance(context);
     }
 
     public static InternetService getInstance(Context context) {
